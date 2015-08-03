@@ -4,6 +4,17 @@ OneAll SDK provides tools to use OneAll Social Login features on Android Platfor
 
 ## Integrating SDK
 
+### Running Sample Application
+
+In order to run sample application, number of specific settings have to be updated in the code. Open `app/src/main/res/values/strings.xml` file and update the following values:
+- `oneall_subdomain`- OneAll application subdomain from your [application dashboard](https://app.oneall.com/applications/).
+- `facebook_app_id`- Facebook application ID used for authentication.
+- `twitter_consumer_key`- Twitter application consumer key from [Twitter Application Settings](http://apps.twitter.com/).
+- `twitter_consumer_secret`- Twitter application consumer secrect from [Twitter Application Settings](http://apps.twitter.com/).
+
+Twitter consumer key and twitter consumer secret are optional and may be omitted if you don't want to use native Android Twitter authentication.
+
+
 ### Including Libraries
 
 SDK added to the project with a few lines of code using Gradle.
@@ -18,7 +29,7 @@ After opening the project, edit `build.gradle` file. Add this to Module-level `/
 Add the compile dependency with the latest version of the OneAll SDK in the `build.gradle` file:
 ```groovy
     dependencies {
-        compile 'com.oneall:oneall-sdk:0.9'
+        compile 'com.oneall:oneall-sdk:1.0'
     }
 ```
 Sync Gradle and build your project. Now you will be able to use `com.oneall.OAManager` in your code:

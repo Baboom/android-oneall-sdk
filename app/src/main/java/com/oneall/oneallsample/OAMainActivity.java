@@ -16,8 +16,9 @@ import android.widget.TextView;
 public class OAMainActivity extends ActionBarActivity {
 
     // Note: Your consumer key and secret should be obfuscated in your source code before shipping.
-    private static final String TWITTER_KEY = "1nDCsyNMnu0l5hzUCasIBj8FU";
-    private static final String TWITTER_SECRET = "R3b5W2iddHnaCwStbyXhRUVHcWQblVuGAMsrWXQ4OygFFlQY2w";
+    private String mTwitterKey;
+    private String mTwitterSecret;
+    private String mSubdomain;
 
     // region Properties
 
@@ -64,6 +65,7 @@ public class OAMainActivity extends ActionBarActivity {
     protected void onDestroy() {
         super.onDestroy();
         OAManager.getInstance().onDestroy();
+        OAManager.destroyInstance();
     }
 
     @Override
@@ -78,7 +80,11 @@ public class OAMainActivity extends ActionBarActivity {
 
         setContentView(R.layout.activity_oamain);
 
-        OAManager.getInstance().setup(this, "urktest", TWITTER_KEY, TWITTER_SECRET);
+        mTwitterKey = getString(R.string.twitter_consumer_key);
+        mTwitterSecret = getString(R.string.twitter_consumer_secret);
+        mSubdomain = getString(R.string.oneall_subdomain);
+
+        OAManager.getInstance().setup(this, mSubdomain, mTwitterKey, mTwitterSecret);
         OAManager.getInstance().onCreate(this, savedInstanceState);
 
         imageUserAvatar = (ImageView) findViewById(R.id.main_activity_user_avatar);
@@ -102,13 +108,6 @@ public class OAMainActivity extends ActionBarActivity {
             @Override
             public void onClick(View v) {
                 OAManager.getInstance().login(OAMainActivity.this, "foursquare", loginHandler);
-            }
-        });
-
-        findViewById(R.id.button_main_login_twitter).setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                OAManager.getInstance().login(OAMainActivity.this, "twitter", loginHandler);
             }
         });
 
