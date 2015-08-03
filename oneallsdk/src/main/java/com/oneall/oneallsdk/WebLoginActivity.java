@@ -28,7 +28,7 @@ public class WebLoginActivity extends ActionBarActivity {
 
     private final static String CUSTOM_URL_SCHEME = "oneall";
 
-    public final static Integer RESULT_FAILED = 0x80;
+    public final static int RESULT_FAILED = 0x80;
 
     // endregion
 

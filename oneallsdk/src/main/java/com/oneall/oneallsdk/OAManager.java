@@ -11,8 +11,8 @@ import com.oneall.oneallsdk.rest.models.User;
 import com.oneall.oneallsdk.rest.service.ConnectionService;
 import com.oneall.oneallsdk.rest.service.MessagePostService;
 import com.oneall.oneallsdk.rest.service.UserService;
-import com.twitter.sdk.android.Twitter;
 import com.twitter.sdk.android.core.TwitterAuthConfig;
+import com.twitter.sdk.android.core.TwitterCore;
 
 import android.app.Activity;
 import android.app.FragmentManager;
@@ -154,7 +154,7 @@ public class OAManager {
         OALog.init(mAppContext);
 
         TwitterAuthConfig authConfig = new TwitterAuthConfig(twitterConsumerKey, twitterSecret);
-        Fabric.with(this.mAppContext, new Twitter(authConfig));
+        Fabric.with(this.mAppContext, new TwitterCore(authConfig));
 
         OALog.info(String.format("SDK init with subdomain %s", subdomain));
 
@@ -212,6 +212,7 @@ public class OAManager {
                                         facebookLoginFailure(error);
                                     }
                                 });
+
                 if (!res) {
                     webLoginWithProvider(activity);
                 }
@@ -630,22 +631,27 @@ public class OAManager {
      * should be called by the using activity to process onActivityResult signal
      */
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
-        /* on cancelled login, nothing to do here */
-        if (resultCode == Activity.RESULT_CANCELED ||
-            resultCode == WebLoginActivity.RESULT_FAILED) {
-
-            if (loginHandler != null) {
-                loginHandler.loginFailure(new OAError(OAError.ErrorCode.OA_ERROR_CANCELLED, null));
-                loginHandler = null;
-            }
-        } else if (requestCode == INTENT_REQUEST_CODE_SELECT_ACTIVITY) {
-            loginOnResumeProvider = data.getExtras().getString(ProviderSelectActivity.INTENT_EXTRA_PROVIDER);
-            loginOnResume = true;
-        } else if (requestCode == INTENT_REQUEST_CODE_LOGIN) {
-            webLoginComplete(data);
-        } else {
-            FacebookWrapper.getInstance().onActivityResult(requestCode, resultCode, data);
-            TwitterWrapper.getInstance().onActivityResult(requestCode, resultCode, data);
+        switch (resultCode) {
+            case Activity.RESULT_OK:
+                if (requestCode == INTENT_REQUEST_CODE_SELECT_ACTIVITY) {
+                    loginOnResumeProvider = data.getExtras().getString(ProviderSelectActivity.INTENT_EXTRA_PROVIDER);
+                    loginOnResume = true;
+                } else if (requestCode == INTENT_REQUEST_CODE_LOGIN) {
+                    webLoginComplete(data);
+                } else {
+                    FacebookWrapper.getInstance().onActivityResult(requestCode, resultCode, data);
+                    TwitterWrapper.getInstance().onActivityResult(requestCode, resultCode, data);
+                }
+                break;
+            case Activity.RESULT_CANCELED:
+                // let the native sdk's handle the result cancelled ev
+                FacebookWrapper.getInstance().onActivityResult(requestCode, resultCode, data);
+                TwitterWrapper.getInstance().onActivityResult(requestCode, resultCode, data);
+            case WebLoginActivity.RESULT_FAILED:
+                if (loginHandler != null) {
+                    loginHandler.loginFailure(new OAError(OAError.ErrorCode.OA_ERROR_CANCELLED, null));
+                    loginHandler = null;
+                }
         }
     }
 
