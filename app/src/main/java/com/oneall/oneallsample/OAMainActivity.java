@@ -111,6 +111,13 @@ public class OAMainActivity extends ActionBarActivity {
             }
         });
 
+        findViewById(R.id.button_main_login_twitter).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                OAManager.getInstance().login(OAMainActivity.this, "twitter", loginHandler);
+            }
+        });
+
         buttonPost = (Button) findViewById(R.id.button_post);
         buttonPost.setOnClickListener(new View.OnClickListener() {
             @Override
