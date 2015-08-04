@@ -1,13 +1,16 @@
 package com.oneall.oneallsdk;
 
 import android.app.ProgressDialog;
+import android.content.DialogInterface;
+import android.content.DialogInterface.OnCancelListener;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.net.Uri;
+import android.os.Bundle;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.ActionBarActivity;
-import android.os.Bundle;
 import android.view.MenuItem;
+import android.view.WindowManager;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 
@@ -38,7 +41,7 @@ public class WebLoginActivity extends ActionBarActivity {
         setContentView(R.layout.activity_web_login);
 
         final ActionBar supportActionBar = getSupportActionBar();
-        if(supportActionBar != null) {
+        if (supportActionBar != null) {
             supportActionBar.setDisplayHomeAsUpEnabled(true);
         }
 
@@ -54,11 +57,23 @@ public class WebLoginActivity extends ActionBarActivity {
             @Override
             public void onPageStarted(WebView view, String url, Bitmap favicon) {
                 OALog.info(String.format("Page loading state: %s", url));
-                if (progressDialog == null) {
-                    progressDialog = ProgressDialog.show(
-                            WebLoginActivity.this,
-                            "",
-                            getResources().getString(R.string.web_login_progress_title));
+                try {
+                    if (progressDialog == null) {
+                        progressDialog = ProgressDialog.show(
+                                WebLoginActivity.this,
+                                "",
+                                getResources().getString(R.string.web_login_progress_title),
+                                true,
+                                true,
+                                new OnCancelListener() {
+                                    @Override
+                                    public void onCancel(DialogInterface dialog) {
+                                        pageLoadFailed(null);
+                                    }
+                                });
+                    }
+                } catch (WindowManager.BadTokenException e) {
+                    //ignore: the user backed out but we still got the onPageStarted event
                 }
 
                 super.onPageStarted(view, url, favicon);

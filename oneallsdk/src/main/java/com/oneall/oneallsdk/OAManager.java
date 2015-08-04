@@ -1,5 +1,6 @@
 package com.oneall.oneallsdk;
 
+import com.oneall.oneallsdk.OAError.ErrorCode;
 import com.oneall.oneallsdk.rest.ServiceCallback;
 import com.oneall.oneallsdk.rest.ServiceManagerProvider;
 import com.oneall.oneallsdk.rest.models.NativeLoginRequest;
@@ -21,6 +22,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
+import android.view.WindowManager;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -53,6 +55,7 @@ public class OAManager {
     }
 
     public interface OAManagerPostHandler {
+
         void postComplete(Boolean success, PostMessageResponse response);
     }
 
@@ -561,38 +564,52 @@ public class OAManager {
     private void retrieveConnectionInfo(
             Context guiContext, String platform, String accessToken, String secret) {
 
-        final ProgressDialog pd = ProgressDialog.show(
-                guiContext,
-                guiContext.getString(R.string.reading_user_info_title),
-                guiContext.getString(R.string.reading_user_info_message));
-        UserService service = ServiceManagerProvider.getInstance().getUserService();
-        NativeLoginRequest request = new NativeLoginRequest(platform, accessToken, secret);
+        try {
+            final ProgressDialog pd = ProgressDialog.show(
+                    guiContext,
+                    "",
+                    guiContext.getString(R.string.web_login_progress_title),
+                    true,
+                    true);
 
-        service.info(request, new Callback<ResponseConnection>() {
-            @Override
-            public void success(ResponseConnection connection, Response response) {
-                // dismiss the dialog: since we created it with an app context
-                // we must explicitly request it to destroy itself
-                pd.dismiss();
+            UserService service = ServiceManagerProvider.getInstance().getUserService();
+            NativeLoginRequest request = new NativeLoginRequest(platform, accessToken, secret);
 
-                if (loginHandler != null) {
-                    loginHandler.loginSuccess(connection.data.user, false);
-                    loginHandler = null;
+            service.info(request, new Callback<ResponseConnection>() {
+                @Override
+                public void success(ResponseConnection connection, Response response) {
+                    // dismiss the dialog: since we created it with an app context
+                    // we must explicitly request it to destroy itself
+                    pd.dismiss();
+
+                    if (loginHandler != null) {
+                        loginHandler.loginSuccess(connection.data.user, false);
+                        loginHandler = null;
+                    }
                 }
-            }
 
-            @Override
-            public void failure(RetrofitError error) {
-                pd.dismiss();
+                @Override
+                public void failure(RetrofitError error) {
+                    pd.dismiss();
 
-                if (loginHandler != null) {
-                    loginHandler.loginFailure(new OAError(
-                            OAError.ErrorCode.OA_ERROR_CONNECTION_ERROR,
-                            mAppContext.getResources().getString(R.string.connection_failure)));
-                    loginHandler = null;
+                    if (loginHandler != null) {
+                        loginHandler.loginFailure(new OAError(
+                                OAError.ErrorCode.OA_ERROR_CONNECTION_ERROR,
+                                mAppContext.getResources().getString(R.string.connection_failure)));
+                        loginHandler = null;
+                    }
                 }
+            });
+        } catch (WindowManager.BadTokenException e) {
+            // the user backed out of the calling activity so we failed to show the loading view
+            // notify the handler of a generic connection failure either way
+            if (loginHandler != null) {
+                loginHandler.loginFailure(new OAError(
+                        ErrorCode.OA_ERROR_CONNECTION_ERROR,
+                        mAppContext.getResources().getString(R.string.connection_failure)));
+                loginHandler = null;
             }
-        });
+        }
     }
 
     /** validate initialization state, throws an exception if the manager is not initialized */
