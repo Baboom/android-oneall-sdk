@@ -110,7 +110,6 @@ public class FacebookWrapper {
                 }
                 break;
             case CLOSED_LOGIN_FAILED:
-            case CLOSED:
                 onSessionFailure(ex);
                 break;
         }
