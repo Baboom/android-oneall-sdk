@@ -15,6 +15,7 @@ class OALog {
     // region Constants
 
     private final static String TAG = "oneall";
+//    private final static boolean PRINT_LOGS = true;
     private final static boolean PRINT_LOGS = BuildConfig.DEBUG;
 
     // endregion

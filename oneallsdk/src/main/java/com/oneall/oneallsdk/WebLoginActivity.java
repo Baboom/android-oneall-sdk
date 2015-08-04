@@ -8,7 +8,7 @@ import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.Bundle;
 import android.support.v7.app.ActionBar;
-import android.support.v7.app.ActionBarActivity;
+import android.support.v7.app.AppCompatActivity;
 import android.view.MenuItem;
 import android.view.WindowManager;
 import android.webkit.WebView;
@@ -17,11 +17,12 @@ import android.webkit.WebViewClient;
 /**
  * Web view activity used to take the user through authentication
  */
-public class WebLoginActivity extends ActionBarActivity {
+public class WebLoginActivity extends AppCompatActivity {
 
     // region Properties
 
     private ProgressDialog progressDialog;
+    private WebView mWebView;
 
     // endregion
 
@@ -45,9 +46,9 @@ public class WebLoginActivity extends ActionBarActivity {
             supportActionBar.setDisplayHomeAsUpEnabled(true);
         }
 
-        WebView webView = (WebView) findViewById(R.id.web_login_web_view);
-        webView.getSettings().setJavaScriptEnabled(true);
-        webView.setWebViewClient(new WebViewClient() {
+        mWebView = (WebView) findViewById(R.id.web_login_web_view);
+        mWebView.getSettings().setJavaScriptEnabled(true);
+        mWebView.setWebViewClient(new WebViewClient() {
 
             @Override
             public boolean shouldOverrideUrlLoading(WebView view, String url) {
@@ -56,7 +57,7 @@ public class WebLoginActivity extends ActionBarActivity {
 
             @Override
             public void onPageStarted(WebView view, String url, Bitmap favicon) {
-                OALog.info(String.format("Page loading state: %s", url));
+                OALog.info(String.format("Page loading started: %s", url));
                 try {
                     if (progressDialog == null) {
                         progressDialog = ProgressDialog.show(
@@ -91,7 +92,7 @@ public class WebLoginActivity extends ActionBarActivity {
                 pageLoadFailed(failingUrl);
             }
         });
-        webView.loadUrl(getIntent().getExtras().getString(INTENT_EXTRA_URL));
+        mWebView.loadUrl(getIntent().getExtras().getString(INTENT_EXTRA_URL));
     }
 
     @Override
@@ -99,6 +100,11 @@ public class WebLoginActivity extends ActionBarActivity {
         if (progressDialog != null) {
             // avoid leaking the progress window
             progressDialog.dismiss();
+        }
+
+        if (mWebView != null) {
+            mWebView.stopLoading();
+            mWebView.destroy();
         }
 
         super.onDestroy();

@@ -156,8 +156,18 @@ public class OAManager {
 
         OALog.init(mAppContext);
 
-        TwitterAuthConfig authConfig = new TwitterAuthConfig(twitterConsumerKey, twitterSecret);
-        Fabric.with(this.mAppContext, new TwitterCore(authConfig));
+        // if the parent app already initialized Fabric for some of its other modules
+        // make sure it includes the required TwitterCore. Otherwise, init it ourselves
+        if(!Fabric.isInitialized()) {
+            TwitterAuthConfig authConfig = new TwitterAuthConfig(twitterConsumerKey, twitterSecret);
+            Fabric.with(this.mAppContext, new TwitterCore(authConfig));
+        } else {
+            if(Fabric.getKit(TwitterCore.class) == null) {
+                OALog.error("Twitter's Fabric is already init but it doesn't include TwitterCore kit which is required for Auth calls");
+            } else {
+                OALog.warn("Twitter's Fabric was already init with a TwitterCore kit. Reusing existing kit");
+            }
+        }
 
         OALog.info(String.format("SDK init with subdomain %s", subdomain));
 
