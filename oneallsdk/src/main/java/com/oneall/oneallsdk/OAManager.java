@@ -86,6 +86,12 @@ public class OAManager {
 
     // endregion
 
+    // region Localization
+
+    private String loading;
+
+    // endregion
+
     // region Lifecycle
 
     /**
@@ -151,6 +157,9 @@ public class OAManager {
             throw new IllegalArgumentException("Subdomain cannot be empty");
         }
 
+        // init localization strings
+        localize(context.getString(R.string.web_login_progress_title));
+
         // make sure the ref we hold is from the application context
         mAppContext = context.getApplicationContext();
 
@@ -173,6 +182,19 @@ public class OAManager {
 
         Settings.getInstance().setSubdomain(subdomain);
         ProviderManager.getInstance().refreshProviders(mAppContext);
+    }
+
+    /**
+     * The SDK needs a few strings that are shown to the user
+     * during certain tasks. This calls allows you to override the
+     * default locale strings.
+     * Be sure to call this after {@link #setup(Context, String, String, String)}.
+     *
+     * @param loading Shown on progress dialogs while loading web pages or obtaining
+     *                user info.
+     */
+    public void localize(String loading) {
+        this.loading = loading;
     }
 
     /**
@@ -454,6 +476,7 @@ public class OAManager {
                 "Web login with provider %s and url: %s", selectedProvider.getKey(), url));
         Intent i = new Intent(activity, WebLoginActivity.class);
         i.putExtra(WebLoginActivity.INTENT_EXTRA_URL, url);
+        i.putExtra(WebLoginActivity.INTENT_EXTRA_LOADING_STRING, loading);
 
         activity.startActivityForResult(i, INTENT_REQUEST_CODE_LOGIN);
     }
@@ -578,7 +601,7 @@ public class OAManager {
             final ProgressDialog pd = ProgressDialog.show(
                     guiContext,
                     "",
-                    guiContext.getString(R.string.web_login_progress_title),
+                    loading,
                     true,
                     true);
 

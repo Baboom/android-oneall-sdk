@@ -22,13 +22,20 @@ public class WebLoginActivity extends AppCompatActivity {
     // region Properties
 
     private ProgressDialog progressDialog;
-    private WebView mWebView;
+    private WebView webView;
+
+    // endregion
+
+    // region l10n
+
+    private String loading;
 
     // endregion
 
     // region Constants
 
     public final static String INTENT_EXTRA_URL = "url";
+    public final static String INTENT_EXTRA_LOADING_STRING = "loading_string";
 
     private final static String CUSTOM_URL_SCHEME = "oneall";
 
@@ -46,9 +53,16 @@ public class WebLoginActivity extends AppCompatActivity {
             supportActionBar.setDisplayHomeAsUpEnabled(true);
         }
 
-        mWebView = (WebView) findViewById(R.id.web_login_web_view);
-        mWebView.getSettings().setJavaScriptEnabled(true);
-        mWebView.setWebViewClient(new WebViewClient() {
+        final Intent intent = getIntent();
+        if(intent.hasExtra(INTENT_EXTRA_LOADING_STRING)) {
+            loading = intent.getStringExtra(INTENT_EXTRA_LOADING_STRING);
+        } else {
+            loading = getString(R.string.web_login_progress_title);
+        }
+
+        webView = (WebView) findViewById(R.id.web_login_web_view);
+        webView.getSettings().setJavaScriptEnabled(true);
+        webView.setWebViewClient(new WebViewClient() {
 
             @Override
             public boolean shouldOverrideUrlLoading(WebView view, String url) {
@@ -63,7 +77,7 @@ public class WebLoginActivity extends AppCompatActivity {
                         progressDialog = ProgressDialog.show(
                                 WebLoginActivity.this,
                                 "",
-                                getResources().getString(R.string.web_login_progress_title),
+                                loading,
                                 true,
                                 true,
                                 new OnCancelListener() {
@@ -92,7 +106,7 @@ public class WebLoginActivity extends AppCompatActivity {
                 pageLoadFailed(failingUrl);
             }
         });
-        mWebView.loadUrl(getIntent().getExtras().getString(INTENT_EXTRA_URL));
+        webView.loadUrl(intent.getExtras().getString(INTENT_EXTRA_URL));
     }
 
     @Override
@@ -102,9 +116,9 @@ public class WebLoginActivity extends AppCompatActivity {
             progressDialog.dismiss();
         }
 
-        if (mWebView != null) {
-            mWebView.stopLoading();
-            mWebView.destroy();
+        if (webView != null) {
+            webView.stopLoading();
+            webView.destroy();
         }
 
         super.onDestroy();
