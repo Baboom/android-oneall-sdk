@@ -1,10 +1,10 @@
 package com.oneall.oneallsdk;
 
-import android.content.Context;
-
 import com.oneall.oneallsdk.rest.ServiceManagerProvider;
-import com.oneall.oneallsdk.rest.models.ResponseProvidersList;
 import com.oneall.oneallsdk.rest.models.Provider;
+import com.oneall.oneallsdk.rest.models.ResponseProvidersList;
+
+import android.content.Context;
 
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -62,6 +62,15 @@ public class ProviderManager {
     // endregion
 
     // region Interface methods
+
+    /**
+     * Updates the list of providers without any additional changes.
+     *
+     * @param providers The new list of providers
+     */
+    void updateProviders(List<Provider> providers) {
+        this.providers = providers;
+    }
 
     /**
      * force providers refresh. Should be executed as early as possible during application start
