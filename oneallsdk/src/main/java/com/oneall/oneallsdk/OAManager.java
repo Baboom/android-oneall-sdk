@@ -22,10 +22,14 @@ import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
+import android.support.annotation.Nullable;
+import android.util.Log;
 import android.view.WindowManager;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.List;
 import java.util.UUID;
 
 import io.fabric.sdk.android.Fabric;
@@ -148,6 +152,31 @@ public class OAManager {
             String subdomain,
             String twitterConsumerKey,
             String twitterSecret) {
+        setup(context, subdomain, null, twitterConsumerKey, twitterSecret);
+    }
+
+    /**
+     * setup manager instance. should be called before using the manager. Otherwise the manager will
+     * not function.
+     *
+     * @param context            context
+     * @param subdomain          subdomain of your OneAll application
+     * @param defaultProviders   The list of default providers used to immediately
+     *                           populate the accepted providers list while we don't get a response
+     *                           from the server (async) or cache (sync).
+     * @param twitterConsumerKey (optional) Twitter consumer key from
+     *                           {@link <a href="https://apps.twitter.com/">https://apps.twitter.com/</a>}
+     * @param twitterSecret      (optional) Twitter secret key from
+     *                           {@link <a href="https://apps.twitter.com/">https://apps.twitter.com/</a>}
+     * @throws java.lang.NullPointerException     if {@code context} is null
+     * @throws java.lang.IllegalArgumentException if {@code subdomain} is null or empty
+     */
+    public void setup(
+            Context context,
+            String subdomain,
+            @Nullable List<Provider> defaultProviders,
+            String twitterConsumerKey,
+            String twitterSecret) {
 
         if (context == null) {
             throw new NullPointerException("context cannot be null");
@@ -167,11 +196,11 @@ public class OAManager {
 
         // if the parent app already initialized Fabric for some of its other modules
         // make sure it includes the required TwitterCore. Otherwise, init it ourselves
-        if(!Fabric.isInitialized()) {
+        if (!Fabric.isInitialized()) {
             TwitterAuthConfig authConfig = new TwitterAuthConfig(twitterConsumerKey, twitterSecret);
             Fabric.with(this.mAppContext, new TwitterCore(authConfig));
         } else {
-            if(Fabric.getKit(TwitterCore.class) == null) {
+            if (Fabric.getKit(TwitterCore.class) == null) {
                 OALog.error("Twitter's Fabric is already init but it doesn't include TwitterCore kit which is required for Auth calls");
             } else {
                 OALog.warn("Twitter's Fabric was already init with a TwitterCore kit. Reusing existing kit");
@@ -181,6 +210,12 @@ public class OAManager {
         OALog.info(String.format("SDK init with subdomain %s", subdomain));
 
         Settings.getInstance().setSubdomain(subdomain);
+
+        if(defaultProviders != null) {
+            // init ProviderManager with default providers
+            ProviderManager.getInstance().updateProviders(defaultProviders);
+        }
+
         ProviderManager.getInstance().refreshProviders(mAppContext);
     }
 
