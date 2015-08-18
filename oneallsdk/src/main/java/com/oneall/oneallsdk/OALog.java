@@ -1,9 +1,9 @@
 package com.oneall.oneallsdk;
 
+import com.logentries.android.AndroidLogger;
+
 import android.content.Context;
 import android.util.Log;
-
-import com.logentries.android.AndroidLogger;
 
 /**
  * Wrapper class for error logger, able to handle multiple types of logs: LogEntries, regular
@@ -15,6 +15,8 @@ class OALog {
     // region Constants
 
     private final static String TAG = "oneall";
+//    private final static boolean PRINT_LOGS = true;
+    private final static boolean PRINT_LOGS = BuildConfig.DEBUG;
 
     // endregion
 
@@ -80,7 +82,9 @@ class OALog {
      * @param logMessage message to post
      */
     public static void info(String logMessage) {
-        Log.i(TAG, logMessage);
+        if (PRINT_LOGS) {
+            Log.i(TAG, logMessage);
+        }
         if (getInstance().logger != null) {
             getInstance().logger.info(logMessage);
         }
@@ -92,7 +96,9 @@ class OALog {
      * @param logMessage message to post
      */
     public static void warn(String logMessage) {
-        Log.w(TAG, logMessage);
+        if (PRINT_LOGS) {
+            Log.w(TAG, logMessage);
+        }
         if (getInstance().logger != null) {
             getInstance().logger.warn(logMessage);
         }
@@ -104,7 +110,9 @@ class OALog {
      * @param logMessage message to post
      */
     public static void error(String logMessage) {
-        Log.e(TAG, logMessage);
+        if(PRINT_LOGS) {
+            Log.e(TAG, logMessage);
+        }
         if (getInstance().logger != null) {
             getInstance().logger.error(logMessage);
         }

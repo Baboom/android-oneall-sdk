@@ -34,7 +34,7 @@
 
         <meta-data
             android:name="io.fabric.ApiKey"
-            android:value="YOUR FABRIC API KEY HERE" />
+            android:value="e48dc53291fd00516044214bf75cafcdf203b226" />
 
         <meta-data android:name="com.facebook.sdk.ApplicationId"
             android:value="@string/facebook_app_id" />

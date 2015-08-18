@@ -1,5 +1,6 @@
 package com.oneall.oneallsdk;
 
+import com.oneall.oneallsdk.OAError.ErrorCode;
 import com.oneall.oneallsdk.rest.ServiceCallback;
 import com.oneall.oneallsdk.rest.ServiceManagerProvider;
 import com.oneall.oneallsdk.rest.models.NativeLoginRequest;
@@ -11,8 +12,8 @@ import com.oneall.oneallsdk.rest.models.User;
 import com.oneall.oneallsdk.rest.service.ConnectionService;
 import com.oneall.oneallsdk.rest.service.MessagePostService;
 import com.oneall.oneallsdk.rest.service.UserService;
-import com.twitter.sdk.android.Twitter;
 import com.twitter.sdk.android.core.TwitterAuthConfig;
+import com.twitter.sdk.android.core.TwitterCore;
 
 import android.app.Activity;
 import android.app.FragmentManager;
@@ -21,6 +22,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
+import android.view.WindowManager;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -53,6 +55,7 @@ public class OAManager {
     }
 
     public interface OAManagerPostHandler {
+
         void postComplete(Boolean success, PostMessageResponse response);
     }
 
@@ -80,6 +83,12 @@ public class OAManager {
 
     /** currently selected provider */
     private Provider selectedProvider;
+
+    // endregion
+
+    // region Localization
+
+    private String loading;
 
     // endregion
 
@@ -148,18 +157,44 @@ public class OAManager {
             throw new IllegalArgumentException("Subdomain cannot be empty");
         }
 
+        // init localization strings
+        localize(context.getString(R.string.web_login_progress_title));
+
         // make sure the ref we hold is from the application context
         mAppContext = context.getApplicationContext();
 
         OALog.init(mAppContext);
 
-        TwitterAuthConfig authConfig = new TwitterAuthConfig(twitterConsumerKey, twitterSecret);
-        Fabric.with(this.mAppContext, new Twitter(authConfig));
+        // if the parent app already initialized Fabric for some of its other modules
+        // make sure it includes the required TwitterCore. Otherwise, init it ourselves
+        if(!Fabric.isInitialized()) {
+            TwitterAuthConfig authConfig = new TwitterAuthConfig(twitterConsumerKey, twitterSecret);
+            Fabric.with(this.mAppContext, new TwitterCore(authConfig));
+        } else {
+            if(Fabric.getKit(TwitterCore.class) == null) {
+                OALog.error("Twitter's Fabric is already init but it doesn't include TwitterCore kit which is required for Auth calls");
+            } else {
+                OALog.warn("Twitter's Fabric was already init with a TwitterCore kit. Reusing existing kit");
+            }
+        }
 
         OALog.info(String.format("SDK init with subdomain %s", subdomain));
 
         Settings.getInstance().setSubdomain(subdomain);
         ProviderManager.getInstance().refreshProviders(mAppContext);
+    }
+
+    /**
+     * The SDK needs a few strings that are shown to the user
+     * during certain tasks. This calls allows you to override the
+     * default locale strings.
+     * Be sure to call this after {@link #setup(Context, String, String, String)}.
+     *
+     * @param loading Shown on progress dialogs while loading web pages or obtaining
+     *                user info.
+     */
+    public void localize(String loading) {
+        this.loading = loading;
     }
 
     /**
@@ -212,6 +247,7 @@ public class OAManager {
                                         facebookLoginFailure(error);
                                     }
                                 });
+
                 if (!res) {
                     webLoginWithProvider(activity);
                 }
@@ -440,6 +476,7 @@ public class OAManager {
                 "Web login with provider %s and url: %s", selectedProvider.getKey(), url));
         Intent i = new Intent(activity, WebLoginActivity.class);
         i.putExtra(WebLoginActivity.INTENT_EXTRA_URL, url);
+        i.putExtra(WebLoginActivity.INTENT_EXTRA_LOADING_STRING, loading);
 
         activity.startActivityForResult(i, INTENT_REQUEST_CODE_LOGIN);
     }
@@ -560,38 +597,52 @@ public class OAManager {
     private void retrieveConnectionInfo(
             Context guiContext, String platform, String accessToken, String secret) {
 
-        final ProgressDialog pd = ProgressDialog.show(
-                guiContext,
-                guiContext.getString(R.string.reading_user_info_title),
-                guiContext.getString(R.string.reading_user_info_message));
-        UserService service = ServiceManagerProvider.getInstance().getUserService();
-        NativeLoginRequest request = new NativeLoginRequest(platform, accessToken, secret);
+        try {
+            final ProgressDialog pd = ProgressDialog.show(
+                    guiContext,
+                    "",
+                    loading,
+                    true,
+                    true);
 
-        service.info(request, new Callback<ResponseConnection>() {
-            @Override
-            public void success(ResponseConnection connection, Response response) {
-                // dismiss the dialog: since we created it with an app context
-                // we must explicitly request it to destroy itself
-                pd.dismiss();
+            UserService service = ServiceManagerProvider.getInstance().getUserService();
+            NativeLoginRequest request = new NativeLoginRequest(platform, accessToken, secret);
 
-                if (loginHandler != null) {
-                    loginHandler.loginSuccess(connection.data.user, false);
-                    loginHandler = null;
+            service.info(request, new Callback<ResponseConnection>() {
+                @Override
+                public void success(ResponseConnection connection, Response response) {
+                    // dismiss the dialog: since we created it with an app context
+                    // we must explicitly request it to destroy itself
+                    pd.dismiss();
+
+                    if (loginHandler != null) {
+                        loginHandler.loginSuccess(connection.data.user, false);
+                        loginHandler = null;
+                    }
                 }
-            }
 
-            @Override
-            public void failure(RetrofitError error) {
-                pd.dismiss();
+                @Override
+                public void failure(RetrofitError error) {
+                    pd.dismiss();
 
-                if (loginHandler != null) {
-                    loginHandler.loginFailure(new OAError(
-                            OAError.ErrorCode.OA_ERROR_CONNECTION_ERROR,
-                            mAppContext.getResources().getString(R.string.connection_failure)));
-                    loginHandler = null;
+                    if (loginHandler != null) {
+                        loginHandler.loginFailure(new OAError(
+                                OAError.ErrorCode.OA_ERROR_CONNECTION_ERROR,
+                                mAppContext.getResources().getString(R.string.connection_failure)));
+                        loginHandler = null;
+                    }
                 }
+            });
+        } catch (WindowManager.BadTokenException e) {
+            // the user backed out of the calling activity so we failed to show the loading view
+            // notify the handler of a generic connection failure either way
+            if (loginHandler != null) {
+                loginHandler.loginFailure(new OAError(
+                        ErrorCode.OA_ERROR_CONNECTION_ERROR,
+                        mAppContext.getResources().getString(R.string.connection_failure)));
+                loginHandler = null;
             }
-        });
+        }
     }
 
     /** validate initialization state, throws an exception if the manager is not initialized */
@@ -630,22 +681,27 @@ public class OAManager {
      * should be called by the using activity to process onActivityResult signal
      */
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
-        /* on cancelled login, nothing to do here */
-        if (resultCode == Activity.RESULT_CANCELED ||
-            resultCode == WebLoginActivity.RESULT_FAILED) {
-
-            if (loginHandler != null) {
-                loginHandler.loginFailure(new OAError(OAError.ErrorCode.OA_ERROR_CANCELLED, null));
-                loginHandler = null;
-            }
-        } else if (requestCode == INTENT_REQUEST_CODE_SELECT_ACTIVITY) {
-            loginOnResumeProvider = data.getExtras().getString(ProviderSelectActivity.INTENT_EXTRA_PROVIDER);
-            loginOnResume = true;
-        } else if (requestCode == INTENT_REQUEST_CODE_LOGIN) {
-            webLoginComplete(data);
-        } else {
-            FacebookWrapper.getInstance().onActivityResult(requestCode, resultCode, data);
-            TwitterWrapper.getInstance().onActivityResult(requestCode, resultCode, data);
+        switch (resultCode) {
+            case Activity.RESULT_OK:
+                if (requestCode == INTENT_REQUEST_CODE_SELECT_ACTIVITY) {
+                    loginOnResumeProvider = data.getExtras().getString(ProviderSelectActivity.INTENT_EXTRA_PROVIDER);
+                    loginOnResume = true;
+                } else if (requestCode == INTENT_REQUEST_CODE_LOGIN) {
+                    webLoginComplete(data);
+                } else {
+                    FacebookWrapper.getInstance().onActivityResult(requestCode, resultCode, data);
+                    TwitterWrapper.getInstance().onActivityResult(requestCode, resultCode, data);
+                }
+                break;
+            case Activity.RESULT_CANCELED:
+                // let the native sdk's handle the result cancelled ev
+                FacebookWrapper.getInstance().onActivityResult(requestCode, resultCode, data);
+                TwitterWrapper.getInstance().onActivityResult(requestCode, resultCode, data);
+            case WebLoginActivity.RESULT_FAILED:
+                if (loginHandler != null) {
+                    loginHandler.loginFailure(new OAError(OAError.ErrorCode.OA_ERROR_CANCELLED, null));
+                    loginHandler = null;
+                }
         }
     }
 
