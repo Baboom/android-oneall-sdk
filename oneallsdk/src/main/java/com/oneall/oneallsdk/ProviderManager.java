@@ -177,9 +177,10 @@ public class ProviderManager {
         try {
             fis = context.openFileInput(PROVIDERS_CACHE_FILE);
             is = new ObjectInputStream(fis);
-            providers = (Collection<Provider>) is.readObject();
+            Collection<Provider> tmp = (Collection<Provider>) is.readObject();
 
-            if (providers != null) {
+            if (tmp != null && !tmp.isEmpty()) {
+                providers = tmp;
                 OALog.info(String.format("Loaded %d cached providers", providers.size()));
             }
         } catch (FileNotFoundException ignored) {
