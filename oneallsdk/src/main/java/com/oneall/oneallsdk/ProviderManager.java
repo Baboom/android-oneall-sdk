@@ -88,9 +88,13 @@ public class ProviderManager {
                         .getProviders()
                         .getEntries();
 
-                cacheProviders(context, pps);
-                providers = pps;
-                OALog.info(String.format("Parsed %d providers from server", pps.size()));
+                if(pps != null) {
+                    cacheProviders(context, pps);
+                    providers = pps;
+                    OALog.info(String.format("Parsed %d providers from server", pps.size()));
+                } else {
+                    OALog.error("Failed to parse providers from server: got null");
+                }
             }
 
             @Override
