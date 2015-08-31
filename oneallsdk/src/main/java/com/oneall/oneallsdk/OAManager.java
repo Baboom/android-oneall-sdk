@@ -23,11 +23,9 @@ import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
-import android.util.Log;
 import android.view.WindowManager;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
@@ -258,12 +256,13 @@ public class OAManager {
         validateInitialization();
 
         loginHandler = handler;
-        selectedProvider = ProviderManager.getInstance().findByKey(provider);
+        Provider loginProvider = ProviderManager.getInstance().findByKey(provider);
 
-        if (selectedProvider == null) {
-            throw new IllegalArgumentException("Specified provider does not exist");
+        if (loginProvider == null) {
+            throw new IllegalArgumentException("Specified provider does not exist: " + provider);
         }
 
+        selectedProvider = loginProvider;
         lastNonce = UUID.randomUUID().toString();
 
         switch (provider) {
@@ -284,7 +283,7 @@ public class OAManager {
                                 });
 
                 if (!res) {
-                    webLoginWithProvider(activity);
+                    webLoginWithProvider(activity, loginProvider);
                 }
                 break;
             case "twitter":
@@ -301,7 +300,7 @@ public class OAManager {
                 });
                 break;
             default:
-                webLoginWithProvider(activity);
+                webLoginWithProvider(activity, loginProvider);
                 break;
         }
 
@@ -505,10 +504,10 @@ public class OAManager {
      *
      * @param userInput user information if required by this provider, can be null
      */
-    private void webLoginWithLoginData(Activity activity, String userInput) {
-        String url = getApiUrlForProvider(selectedProvider, lastNonce, userInput);
+    private void webLoginWithLoginData(Activity activity, Provider provider, String userInput) {
+        String url = getApiUrlForProvider(provider, lastNonce, userInput);
         OALog.info(String.format(
-                "Web login with provider %s and url: %s", selectedProvider.getKey(), url));
+                "Web login with provider %s and url: %s", provider.getKey(), url));
         Intent i = new Intent(activity, WebLoginActivity.class);
         i.putExtra(WebLoginActivity.INTENT_EXTRA_URL, url);
         i.putExtra(WebLoginActivity.INTENT_EXTRA_LOADING_STRING, loading);
@@ -520,10 +519,10 @@ public class OAManager {
      * starts actual web login with selected provider by opening web view with provider relevant
      * URL
      */
-    private void webLoginWithProvider(Activity activity) {
-        OALog.info(String.format("Login with provider %s", selectedProvider));
+    private void webLoginWithProvider(Activity activity, final Provider provider) {
+        OALog.info(String.format("Login with provider %s", provider));
 
-        if (selectedProvider.getAuthentication().getIsUserInputRequired()) {
+        if (provider.getAuthentication().getIsUserInputRequired()) {
             FragmentManager fm = activity.getFragmentManager();
             final UserInputDialog dialog = new UserInputDialog();
             dialog.setListener(new UserInputDialog.DialogListener() {
@@ -532,18 +531,18 @@ public class OAManager {
 
                 @Override
                 public void onAccept(String userInput) {
-                    webLoginWithLoginData(dialog.getActivity(), userInput);
+                    webLoginWithLoginData(dialog.getActivity(), provider, userInput);
                 }
             });
 
             Bundle args = new Bundle();
-            args.putString(UserInputDialog.ARGUMENT_USER_INPUT_TYPE, selectedProvider.getAuthentication().getUserInputType());
-            args.putString(UserInputDialog.ARGUMENT_PROVIDER_NAME, selectedProvider.getName());
+            args.putString(UserInputDialog.ARGUMENT_USER_INPUT_TYPE, provider.getAuthentication().getUserInputType());
+            args.putString(UserInputDialog.ARGUMENT_PROVIDER_NAME, provider.getName());
 
             dialog.setArguments(args);
             dialog.show(fm, "user_input_dialog");
         } else {
-            webLoginWithLoginData(activity, null);
+            webLoginWithLoginData(activity, provider, null);
         }
     }
 
